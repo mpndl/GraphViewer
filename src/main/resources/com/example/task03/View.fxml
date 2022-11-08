@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.scene.canvas.Canvas?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.example.task03.Controller">
+    <top>
+        <MenuBar fx:id="menuBar">
+            <Menu text="File" >
+                <MenuItem fx:id="newNode" text="New Node" onAction="#onActionAddNode"/>
+                <MenuItem fx:id="deleteNode" text="Delete Node" onAction="#onActionDeleteNode"/>
+                <SeparatorMenuItem />
+                <MenuItem text="Exit" fx:id="exit" onAction="#onActionExit"/>
+            </Menu>
+        </MenuBar>
+    </top>
+    <center>
+            <Pane fx:id="pane" onMouseReleased="#setOnMouseReleased" onMouseClicked="#setOnMouseClicked" prefWidth="600" prefHeight="600" />
+    </center>
+
+</BorderPane>
