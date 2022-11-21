@@ -2,8 +2,6 @@ package com.example.task03;
 
 import javafx.beans.property.*;
 
-import java.util.ArrayList;
-
 public class Node {
     public StringProperty labelProperty = new SimpleStringProperty();
     public DoubleProperty xProperty =  new SimpleDoubleProperty();
