@@ -5,7 +5,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class GraphModel {
     public ObservableList<Node> nodes = FXCollections.observableArrayList();
@@ -19,54 +19,24 @@ public class GraphModel {
         nodes.remove(node);
     }
 
-    public void moveNode(Node node, double x, double y) {
-        int index = nodes.indexOf(node);
-        Node temp = new Node(node.labelProperty.getValue());
-        temp.xProperty.setValue(x);
-        temp.yProperty.setValue(y);
-        nodes.set(index, temp);
-    }
-
-    public void relabelNode(Node node, String label) {
-        int index = nodes.indexOf(node);
-        nodes.set(index, new Node(label));
-    }
-
     public void addEdge(Edge edge) {
         edges.add(edge);
     }
 
-    public void removeEdge(Edge edge) {
-        edges.remove(edge);
-    }
-
-    public ArrayList<Edge> removeEdges(Node node) {
-        ArrayList<Edge> temp = new ArrayList<>();
-        for (Edge edge: edges) {
-            if(edge.source == node || edge.target == node) {
-                temp.add(edge);
-            }
-        }
+    public List<Edge> removeEdges(Node node) {
+        List<Edge> temp = edges.stream()
+                .filter(edge -> edge.source == node || edge.target == node)
+                .toList();
         edges.removeAll(temp);
         return temp;
     }
 
     public boolean edgeExists(Edge e) {
-        for (Edge edge: edges)
-            if(edge == e)
-                return true;
-        return false;
+        return edges.stream().anyMatch(edge -> edge == e);
     }
 
     public boolean edgeExists(Node node1, Node node2) {
-        for (Edge edge: edges) {
-            if(edge.source == node1 && edge.target == node2) {
-                return  true;
-            }
-            else if(edge.target == node1 && edge.source == node2) {
-                return true;
-            }
-        }
-        return false;
+        return edges.stream().
+                anyMatch(edge -> (edge.source == node1 && edge.target == node2) || (edge.target == node1 && edge.source == node2));
     }
 }

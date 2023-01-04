@@ -1,9 +1,6 @@
 package com.example.task03;
 
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.*;
-import javafx.collections.ObservableList;
 import javafx.scene.Cursor;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
@@ -17,6 +14,8 @@ import javafx.scene.shape.Line;
 import javafx.scene.text.Text;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class NodeView extends Circle {
     public Node node;
@@ -29,11 +28,11 @@ public class NodeView extends Circle {
     public DropShadow shortShadow;
     public DropShadow longShadow;
     public Pane pane;
-    public ArrayList<EdgeView> edgeViews;
+    public List<EdgeView> edgeViews;
     public Edge currentEdge;
     public GraphModel model;
     public EdgeView currentEdgeView;
-    public ArrayList<NodeView> nodeViews;
+    public List<NodeView> nodeViews;
     public Property<Paint> colorProperty = new SimpleObjectProperty<>(Color.WHITE);
     public Property<NodeView> selectedNodeViewProperty = new SimpleObjectProperty<>();
     public Line tempLine;
@@ -50,8 +49,6 @@ public class NodeView extends Circle {
         node.yProperty.setValue(y);
 
         model.addNode(node);
-
-        selectedNodeView = this;
 
         this.xProperty.bindBidirectional(this.node.xProperty);
         this.yProperty.bindBidirectional(this.node.yProperty);
@@ -74,7 +71,7 @@ public class NodeView extends Circle {
         setStroke(Color.BLACK);
         fillProperty().bindBidirectional(colorProperty);
 
-        select();
+        //select();
 
         shortShadow = new DropShadow();
         shortShadow.setColor(new Color(0, 0,0, .5));
@@ -129,7 +126,7 @@ public class NodeView extends Circle {
 ;            }
             else if(event.getButton() == MouseButton.SECONDARY) {
                 if(tempLine != null) {
-                    tempNodeView = getNodeViewUnderCursor(event.getX(), event.getY());
+                    tempNodeView = getNodeViewUnderCursor(event.getX(), event.getY()).orElse(null);
                     if(tempNodeView != null && tempNodeView != this) {
                         if(model.edgeExists(tempNodeView.node, this.node))
                             tempNodeView.colorProperty.setValue(Color.RED);
@@ -137,9 +134,7 @@ public class NodeView extends Circle {
                             tempNodeView.colorProperty.setValue(Color.GREEN);
                     }
                     else if(tempNodeView == null) {
-                        for (NodeView nodeView: nodeViews) {
-                            nodeView.colorProperty.setValue(Color.WHITE);
-                        }
+                        nodeViews.forEach(nodeView -> nodeView.colorProperty.setValue(Color.WHITE));
                     }
                     setCursor(Cursor.CROSSHAIR);
                     int index = pane.getChildren().indexOf(tempLine);
@@ -166,7 +161,7 @@ public class NodeView extends Circle {
                 setCursor(Cursor.OPEN_HAND);
                 pane.getChildren().remove(tempLine);
                 tempLine = null;
-                NodeView nodeView = getNodeViewUnderCursor(event.getX(), event.getY());
+                NodeView nodeView = getNodeViewUnderCursor(event.getX(), event.getY()).orElse(null);
                 if(currentEdge != null && nodeView != null && nodeView != this) {
                     if(!model.edgeExists(currentEdge)) {
                         currentEdge.target = nodeView.node;
@@ -209,36 +204,23 @@ public class NodeView extends Circle {
         });
     }
 
-    public ArrayList<EdgeView> removeEdgeViews(ArrayList<Edge> edges) {
-        ArrayList<EdgeView> temp = new ArrayList<>();
-        for (Edge edge:edges) {
-            for (EdgeView edgeView: edgeViews) {
-                if(edgeView.edge == edge) {
-                    temp.add(edgeView);
-                }
-            }
-        }
+    public List<EdgeView> removeEdgeViews(List<Edge> edges) {
+        List<EdgeView> temp = edges.stream()
+                .flatMap(edge -> edgeViews.stream().filter(edgeView -> edgeView.edge == edge))
+                .toList();
         edgeViews.removeAll(temp);
         return temp;
     }
 
     private void deselectAll() {
-        for (NodeView nodeView: nodeViews)
-            if(nodeView != this)
-                if(nodeView.isSelectedProperty.getValue()) {
+        nodeViews.stream()
+                .filter(nodeView -> nodeView != this)
+                .filter(nodeView -> nodeView.isSelectedProperty.getValue())
+                .forEach(nodeView -> {
                     nodeView.deselect();
                     model.selectedNodeProperty.setValue(null);
                     selectedNodeViewProperty.setValue(null);
-                }
-    }
-
-    public static void deselectAll(ArrayList<NodeView> nodeViews, GraphModel model) {
-        for (NodeView nodeView: nodeViews)
-            if(nodeView.isSelectedProperty.getValue()) {
-                nodeView.deselect();
-                model.selectedNodeProperty.setValue(null);
-                nodeView.selectedNodeViewProperty.setValue(null);
-            }
+                });
     }
 
     public void deselect() {
@@ -253,15 +235,10 @@ public class NodeView extends Circle {
         model.selectedNodeProperty.setValue(this.node);
     }
 
-    private NodeView getNodeViewUnderCursor(double x1, double y1) {
-        for (NodeView nodeView: nodeViews) {
-            double x2 = nodeView.getCenterX();
-            double y2 = nodeView.getCenterY();
-            double radius = nodeView.getRadius();
-            if(distance(x1, y1, x2, y2) <= radius)
-                return nodeView;
-        }
-        return null;
+    private Optional<NodeView> getNodeViewUnderCursor(double x1, double y1) {
+        return nodeViews.stream()
+                .filter(nv -> distance(x1, y1, nv.getCenterX(), nv.getCenterY()) <= nv.getRadius())
+                .findAny();
     }
 
     private double distance(double x1, double y1, double x2, double y2) {

@@ -1,22 +1,10 @@
 package com.example.task03;
 
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
-import javafx.beans.property.Property;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.scene.Cursor;
-import javafx.scene.Group;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
@@ -24,11 +12,11 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.stage.Stage;
-import javafx.util.Callback;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -36,7 +24,6 @@ public class Controller implements Initializable {
     public MenuItem deleteNode;
     public MenuItem exit;
     public MenuBar menuBar;
-    public Group canvasGroup;
     public Pane pane;
     public ArrayList<EdgeView> edgeViews = new ArrayList<>();
     public ArrayList<NodeView> nodeViews = new ArrayList<>();
@@ -49,7 +36,8 @@ public class Controller implements Initializable {
             nodeViews.add(nodeView);
         }
 
-        selectedNodeView = getNodeViewUnderCursor(event.getX(), event.getY());
+        selectedNodeView = getNodeViewUnderCursor(event.getX(), event.getY()).orElse(null);
+
         if(selectedNodeView == null)
             model.selectedNodeProperty.setValue(null);
         else
@@ -57,21 +45,16 @@ public class Controller implements Initializable {
     }
 
     public void setOnMouseReleased(MouseEvent event) {
-        for (NodeView nodeView: nodeViews) {
-            if (nodeView.currentEdge != null)
-                nodeView.currentEdge = null;
-            if(nodeView.isSelectedProperty.getValue())
-                nodeView.deselect();
-        }
+        nodeViews.forEach(nodeView -> {
+            if (nodeView.currentEdge != null) nodeView.currentEdge = null;
+            if(nodeView.isSelectedProperty.getValue()) nodeView.deselect();
+        });
     }
 
     public void onActionDeleteNode(Event event) {
         if(model.selectedNodeProperty.getValue() != null) {
-            ArrayList<EdgeView> edgeViews = selectedNodeView.removeEdgeViews(model.removeEdges(model.selectedNodeProperty.getValue()));
-
-            for (EdgeView edgeView: edgeViews) {
-                pane.getChildren().remove(edgeView);
-            }
+            List<EdgeView> edgeViews = selectedNodeView.removeEdgeViews(model.removeEdges(model.selectedNodeProperty.getValue()));
+            edgeViews.forEach(edgeView -> pane.getChildren().remove(edgeView));
 
             pane.getChildren().removeAll(selectedNodeView, selectedNodeView.label);
             model.removeNode(model.selectedNodeProperty.getValue());
@@ -101,26 +84,15 @@ public class Controller implements Initializable {
         pane.setBackground(new Background(backgroundFill));
     }
 
-    private NodeView getNodeViewUnderCursor(double x1, double y1) {
-        for (NodeView nodeView: nodeViews) {
-            double x2 = nodeView.getCenterX();
-            double y2 = nodeView.getCenterY();
-            double radius = nodeView.getRadius();
-            if(distance(x1, y1, x2, y2) <= radius)
-                return nodeView;
-        }
-        return null;
+    private Optional<NodeView> getNodeViewUnderCursor(double x1, double y1) {
+        return nodeViews.stream()
+                .filter(nv -> distance(x1, y1, nv.getCenterX(), nv.getCenterY()) <= nv.getRadius())
+                .findAny();
     }
 
     private boolean touchesOnCircles(double x1, double y1) {
-        for (NodeView nodeView: nodeViews) {
-            double x2 = nodeView.getCenterX();
-            double y2 = nodeView.getCenterY();
-            double radius = nodeView.getRadius();
-            if(distance(x1, y1, x2, y2) <= radius)
-                return true;
-        }
-        return false;
+        return nodeViews.stream()
+                .anyMatch(nv -> distance(x1, y1, nv.getCenterX(), nv.getCenterY()) <= nv.getRadius());
     }
 
     private double distance(double x1, double y1, double x2, double y2) {
